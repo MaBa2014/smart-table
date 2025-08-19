@@ -1,18 +1,8 @@
-import { rules, createComparison } from "../lib/compare.js";
-
 export function initSearching(searchField) {
-  const compare = createComparison(
-    ["skipEmptyTargetValues"],
-    [
-      rules.searchMultipleFields(
-        searchField,
-        ["date", "customer", "seller"],
-        false
-      ),
-    ]
-  );
-
-  return (data, state) => {
-    return data.filter((row) => compare(row, state));
+  return (query, state) => {
+    const value = state[searchField];
+    return value && value.trim().length
+      ? Object.assign({}, query, { search: value.trim() })
+      : query;
   };
 }

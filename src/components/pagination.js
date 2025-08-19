@@ -7,18 +7,19 @@ export const initPagination = (
   const pageTemplate = pages.firstElementChild.cloneNode(true);
   pages.firstElementChild.remove();
 
-  return (data, state, action) => {
-    const rowsPerPage = state.rowsPerPage;
-    const pageCount = Math.ceil(data.length / rowsPerPage);
-    let page = state.page;
+  let pageCount = 1;
 
-    if (action)
+  const applyPagination = (query, state, action) => {
+    const limit = Number(state.rowsPerPage) || 10;
+    let page = Number(state.page) || 1;
+
+    if (action) {
       switch (action.name) {
         case "prev":
           page = Math.max(1, page - 1);
           break;
         case "next":
-          page = Math.min(pageCount, page + 1);
+          page = Math.max(1, Math.min(page + 1, pageCount));
           break;
         case "first":
           page = 1;
@@ -27,22 +28,31 @@ export const initPagination = (
           page = pageCount;
           break;
       }
+    }
+    return Object.assign({}, query, { limit, page });
+  };
 
-    const visiblePages = getPages(page, pageCount, 5);
+  const updatePagination = (total, { page, limit }) => {
+    const currentLimit = Number(limit) || 10;
+    const currentPage = Number(page) || 1;
 
+    pageCount = Math.max(1, Math.ceil((Number(total) || 0) / currentLimit));
+
+    const visiblePages = getPages(currentPage, pageCount, 5);
     pages.replaceChildren(
       ...visiblePages.map((pageNumber) => {
         const el = pageTemplate.cloneNode(true);
-        return createPage(el, pageNumber, pageNumber === page);
+        return createPage(el, pageNumber, pageNumber === currentPage);
       })
     );
 
-    fromRow.textContent = (page - 1) * rowsPerPage + 1;
-    toRow.textContent = Math.min(page * rowsPerPage, data.length);
-    totalRows.textContent = data.length;
+    const from = (currentPage - 1) * currentLimit + 1;
+    const to = Math.min(currentPage * currentLimit, Number(total) || 0);
 
-    const skip = (page - 1) * rowsPerPage;
-    return data.slice(skip, skip + rowsPerPage);
-    return data.slice(0, 10);
+    fromRow.textContent = (Number(total) || 0) === 0 ? 0 : from;
+    toRow.textContent = (Number(total) || 0) === 0 ? 0 : to;
+    totalRows.textContent = Number(total) || 0;
   };
+
+  return { updatePagination, applyPagination };
 };
